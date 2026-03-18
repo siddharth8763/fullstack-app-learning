@@ -1,0 +1,67 @@
+// =============================================================
+// Prisma Schema — Auth & User Service Shared Database
+// INTERVIEW: Prisma is a type-safe ORM that generates a fully-
+// typed client. It uses a schema.prisma file to define models
+// and then generates migrations + TypeScript types.
+//
+// Key terms:
+// - datasource: DB connection (MySQL here)
+// - generator: what Prisma generates (client = TypeScript types)
+// - model: maps to a DB table
+// - @id, @unique, @default, @updatedAt are Prisma field attrs
+// - @relation defines FK relationships
+// =============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// User Model
+// INTERVIEW: We store googleId as nullable so users can sign up
+// both via email/password AND via Google OAuth.
+// refreshToken stored here for rotation-based revocation strategy.
+// ─────────────────────────────────────────────
+model User {
+  id           String   @id @default(uuid()) @db.VarChar(36)
+  email        String   @unique @db.VarChar(255)
+  name         String   @db.VarChar(100)
+  passwordHash String?  @db.Text        // nullable: Google OAuth users have no password
+  googleId     String?  @unique @db.VarChar(100)
+  role         Role     @default(USER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+  @@map("users")      // actual table name in MySQL
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  token     String   @db.Text
+  userId    String   @db.VarChar(36)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  isRevoked Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// INTERVIEW: Enums in Prisma map to MySQL ENUM type.
+// RBAC (Role-Based Access Control): each user has a role that
+// determines what API endpoints they can access.
+enum Role {
+  USER
+  ADMIN
+}
