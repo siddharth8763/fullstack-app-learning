@@ -1,0 +1,32 @@
+{
+  "name": "fullstack-platform-cdk",
+  "version": "1.0.0",
+  "description": "AWS CDK infrastructure for Full Stack Learning Platform",
+  "main": "index.js",
+  "scripts": {
+    "build": "cdk synth",
+    "watch": "cdk watch",
+    "deploy": "cdk deploy --all",
+    "destroy": "cdk destroy --all",
+    "diff": "cdk diff",
+    "bootstrap": "cdk bootstrap"
+  },
+  "keywords": [
+    "aws",
+    "cdk",
+    "infrastructure",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "aws-cdk-lib": "^2.100.0",
+    "constructs": "^10.3.0",
+    "typescript": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "aws-cdk": "^2.100.0",
+    "ts-node": "^10.9.0"
+  }
+}

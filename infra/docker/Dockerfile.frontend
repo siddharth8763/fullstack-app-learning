@@ -1,0 +1,54 @@
+# =============================================================
+# Multi-stage Dockerfile for React/Vite Frontend
+# INTERVIEW: Stage 1 builds the static files, Stage 2 serves
+# them via nginx — a production-grade static file server.
+# ─────────────────────────────────────────────────────────────
+# The 'development' target mounts volumes for hot-reload (HMR).
+# The 'production' target is a lean nginx static server.
+# =============================================================
+
+# ── Stage 1: Development (hot module reload) ──────────────────
+FROM node:20-alpine AS development
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 5173
+
+# Vite must bind to 0.0.0.0 to be accessible outside the container
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+# ── Stage 2: Builder ──────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+RUN npm run build
+
+# ── Stage 3: Production (nginx static server) ─────────────────
+FROM nginx:alpine AS production
+
+# Remove default nginx page
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy built assets
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Custom nginx config for SPA routing (React Router)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=10s \
+  CMD wget -qO- http://localhost/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

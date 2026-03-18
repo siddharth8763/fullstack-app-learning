@@ -1,0 +1,58 @@
+# =============================================================
+# Multi-stage Dockerfile for Node.js microservices
+# INTERVIEW: Multi-stage builds keep final image size small.
+# The 'builder' stage compiles TypeScript; the 'runner' stage
+# only includes compiled JS + production dependencies.
+# =============================================================
+
+ARG SERVICE_DIR=services/api-gateway
+
+# ── Stage 1: Builder ──────────────────────────────────────────
+FROM node:20-alpine AS builder
+ARG SERVICE_DIR
+
+WORKDIR /app
+
+# Copy root workspace package files
+COPY package.json ./
+COPY package-lock.json* ./
+
+# Copy the specific service
+COPY ${SERVICE_DIR}/package.json ./${SERVICE_DIR}/package.json
+COPY ${SERVICE_DIR}/prisma* ./${SERVICE_DIR}/prisma/
+
+# Install ALL dependencies (including devDeps for TypeScript compile)
+RUN npm install --workspace=${SERVICE_DIR}
+
+# Copy source
+COPY ${SERVICE_DIR} ./${SERVICE_DIR}
+
+# Compile TypeScript
+WORKDIR /app/${SERVICE_DIR}
+RUN npx prisma generate 2>/dev/null || true
+RUN npm run build
+
+# ── Stage 2: Runner (production) ──────────────────────────────
+FROM node:20-alpine AS runner
+ARG SERVICE_DIR
+
+# Security: don't run as root
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+WORKDIR /app
+
+# Copy compiled output and prod dependencies
+COPY --from=builder /app/${SERVICE_DIR}/dist ./dist
+COPY --from=builder /app/${SERVICE_DIR}/package.json ./package.json
+COPY --from=builder /app/${SERVICE_DIR}/node_modules ./node_modules
+COPY --from=builder /app/${SERVICE_DIR}/prisma* ./prisma/
+
+USER appuser
+
+# Expose the port the service listens on (overridable)
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD wget -qO- http://localhost:3000/health || exit 1
+
+CMD ["node", "dist/index.js"]

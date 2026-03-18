@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: fullstack-platform
+  labels:
+    app: user-service
+    tier: backend
+spec:
+  selector:
+    app: user-service
+    tier: backend
+  ports:
+  - port: 3002
+    targetPort: 3002
+    protocol: TCP
+    name: http
+  type: ClusterIP
