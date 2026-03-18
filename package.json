@@ -1,0 +1,23 @@
+{
+  "name": "fullstack-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-level full-stack learning platform — React, Express Microservices, MySQL, Docker, Kubernetes, AWS CDK, Grafana",
+  "workspaces": [
+    "frontend",
+    "services/api-gateway",
+    "services/auth-service",
+    "services/user-service"
+  ],
+  "scripts": {
+    "dev": "docker-compose up --build",
+    "dev:down": "docker-compose down -v",
+    "lint": "npm run lint --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "install:all": "npm install --workspaces"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}
